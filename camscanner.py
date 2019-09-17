@@ -7,6 +7,7 @@ import imutils
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
+
 # construct the argument parser and parse the arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--image", required=True,
@@ -19,9 +20,9 @@ args = parser.parse_args()
 # load the image and compute the ratio of the old height
 # to the new height, clone it, and resize it
 img = cv2.imread(args.image)
-ratio = img.shape[0] / 500.0
-orig = img.copy()
-img = imutils.resize(img, height=500)
+# ratio = img.shape[0] / 500.0
+# orig = img.copy()
+# img = imutils.resize(img, height=500)
 
 # convert the image to grayscale, blur it, and find edges
 # in the image
@@ -42,6 +43,7 @@ cnts = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 cnts = imutils.grab_contours(cnts)
 cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]
 
+final_img = None
 screenCnt = None
 # loop over the contours
 for c in cnts:
@@ -74,47 +76,78 @@ if screenCnt is None:
     # compute a rotated bounding box that contains all
     # coordinates
     coords = np.column_stack(np.where(thresh > 0))
-    angle = cv2.minAreaRect(coords)[-1]
-
+    rect = cv2.minAreaRect(coords)
+    angle = rect[-1]
+    box = cv2.boxPoints(rect)
+    box = np.int0(box)
+    cv2.drawContours(img, [box], 0, (0, 0, 255), 2)
+    cv2.imshow("Outline - edged", img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 # else
 else:
     # show the contour (outline) of the piece of paper
     print("STEP 2: Find contours of paper")
-    cv2.drawContours(img, [screenCnt], -1, (0, 255, 0), 2)
+    # cv2.drawContours(img, [screenCnt], -1, (0, 255, 0), 2)
+    angle = cv2.minAreaRect(screenCnt)[-1]
+
     cv2.imshow("Outline", img)
+
+    rottt = imutils.rotate_bound(img, angle=-angle)
+
+    gray = cv2.cvtColor(rottt, cv2.COLOR_BGR2GRAY)
+    edged = cv2.Canny(gray, 75, 200)
+
+    _, thresh = cv2.threshold(edged, 127, 255, 0)
+    contours, _ = cv2.findContours(thresh, 1, 2)
+    cnt = sorted(contours, key=cv2.contourArea, reverse=True)[:1][0]
+
+    print(type(cnt))
+    x, y, w, h = cv2.boundingRect(cnt)
+    # cv2.rectangle(rottt, (x, y), (x + w, y + h), (0, 255, 0), 2)
+    crop_img = rottt[y:y + h, x:x + w]
+    cv2.imshow("Outline - edged", edged)
+    cv2.imshow("Outline - rot", rottt)
+    cv2.imshow("Outline - rot - crop", crop_img)
+    final_img = crop_img
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-    angle = cv2.minAreaRect(screenCnt)[-1]
 
 # the `cv2.minAreaRect` function returns values in the
 # range [-90, 0); as the rectangle rotates clockwise the
 # returned angle trends to 0 -- in this special case we
 # need to add 90 degrees to the angle
-if angle < -45:
-    angle = -(90 + angle)
 
 # otherwise, just take the inverse of the angle to make
 # it positive
 else:
     angle = -angle
-angle = -angle
 
 # rotate the image to deskew it
-(h, w) = orig.shape[:2]
+(h, w) = img.shape[:2]
 center = (w // 2, h // 2)
 M = cv2.getRotationMatrix2D(center, angle, 1.0)
-rotated = cv2.warpAffine(orig, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
-# rotated = imutils.rotate_bound(img, angle=angle)
-# rotated = imutils.rotate_bound(img, angle=-angle)
+rotated = cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
 
 # show the output image
 print("[INFO] angle: {:.3f}".format(angle))
 cv2.imshow("Input", img)
-cv2.imshow("Rotated", rotated)
-cv2.waitKey(0)
+if final_img is None:
+    final_img = rotated
 
-gray = cv2.cvtColor(rotated, cv2.COLOR_BGR2GRAY)
+cv2.imshow("final", final_img)
+key = cv2.waitKey(0)
+while key != ord(" "):
+    if key == ord("d"):
+        final_img = cv2.rotate(final_img, cv2.ROTATE_90_CLOCKWISE)
+    elif key == ord("a"):
+        final_img = cv2.rotate(final_img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    print(key)
+    cv2.imshow('rotate', final_img)
+    key = cv2.waitKey(0)
+
+gray = cv2.cvtColor(final_img, cv2.COLOR_BGR2GRAY)
 _, thresh = cv2.threshold(gray, 60, 255, 1)
 blur = cv2.medianBlur(thresh, 1)
 
