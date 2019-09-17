@@ -1,3 +1,5 @@
+import argparse
+
 import cv2
 import numpy as np
 import pytesseract
@@ -5,10 +7,18 @@ import imutils
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
-img = cv2.imread('arabic.png')
+# construct the argument parser and parse the arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("--image", required=True,
+                    help="Path to the image to be scanned, language (ara or eng)")
+parser.add_argument("--lang", required=True,
+                    help="the desired language (ara or eng)")
+
+args = parser.parse_args()
 
 # load the image and compute the ratio of the old height
 # to the new height, clone it, and resize it
+img = cv2.imread(args.image)
 ratio = img.shape[0] / 500.0
 orig = img.copy()
 img = imutils.resize(img, height=500)
@@ -77,7 +87,6 @@ else:
 
     angle = cv2.minAreaRect(screenCnt)[-1]
 
-
 # the `cv2.minAreaRect` function returns values in the
 # range [-90, 0); as the rectangle rotates clockwise the
 # returned angle trends to 0 -- in this special case we
@@ -105,12 +114,11 @@ cv2.imshow("Input", img)
 cv2.imshow("Rotated", rotated)
 cv2.waitKey(0)
 
-
 gray = cv2.cvtColor(rotated, cv2.COLOR_BGR2GRAY)
 _, thresh = cv2.threshold(gray, 60, 255, 1)
 blur = cv2.medianBlur(thresh, 1)
 
-print(pytesseract.image_to_string(gray, lang='ara'))
+print(pytesseract.image_to_string(gray, lang=args.lang))
 
 cv2.imshow('ImageWindow1', gray)
 cv2.imshow('ImageWindow2', thresh)
