@@ -80,8 +80,10 @@ if screenCnt is None:
     angle = rect[-1]
     box = cv2.boxPoints(rect)
     box = np.int0(box)
-    cv2.drawContours(img, [box], 0, (0, 0, 255), 2)
-    cv2.imshow("Outline - edged", img)
+
+    # todo debug here
+    # cv2.drawContours(img, [box], 0, (0, 0, 255), 2)
+    # cv2.imshow("Outline - edged", img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 # else
@@ -121,6 +123,9 @@ else:
 
 # otherwise, just take the inverse of the angle to make
 # it positive
+if angle < -45:
+    angle = -(90 + angle)
+
 else:
     angle = -angle
 
