@@ -156,7 +156,8 @@ gray = cv2.cvtColor(final_img, cv2.COLOR_BGR2GRAY)
 _, thresh = cv2.threshold(gray, 60, 255, 1)
 blur = cv2.medianBlur(thresh, 1)
 
-print(pytesseract.image_to_string(gray, lang=args.lang))
+with open("output.txt", "w", encoding='utf-8') as out:
+    out.write(pytesseract.image_to_string(gray, lang=args.lang))
 
 cv2.imshow('ImageWindow1', gray)
 cv2.imshow('ImageWindow2', thresh)
