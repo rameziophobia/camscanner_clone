@@ -1,12 +1,10 @@
 import argparse
-
 import cv2
 import numpy as np
 import pytesseract
 import imutils
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
 
 # construct the argument parser and parse the arguments
 parser = argparse.ArgumentParser()
@@ -68,14 +66,13 @@ if screenCnt is None:
     angle = rect[-1]
     box = cv2.boxPoints(rect)
     box = np.int0(box)
+
 else:
-    # show the contour (outline) of the piece of paper
+    # rotate the paper then crop it
     angle = cv2.minAreaRect(screenCnt)[-1]
+    rotated_bound = imutils.rotate_bound(img, angle=-angle)
 
-
-    rottt = imutils.rotate_bound(img, angle=-angle)
-
-    gray = cv2.cvtColor(rottt, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(rotated_bound, cv2.COLOR_BGR2GRAY)
     edged = cv2.Canny(gray, 75, 200)
 
     _, thresh = cv2.threshold(edged, 127, 255, 0)
@@ -83,7 +80,7 @@ else:
     cnt = sorted(contours, key=cv2.contourArea, reverse=True)[:1][0]
 
     x, y, w, h = cv2.boundingRect(cnt)
-    crop_img = rottt[y:y + h, x:x + w]
+    crop_img = rotated_bound[y:y + h, x:x + w]
     final_img = crop_img
 
 # the `cv2.minAreaRect` function returns values in the
@@ -130,4 +127,3 @@ with open("output.txt", "w", encoding='utf-8') as out:
 
 with open("noisyImages_output.txt", "w", encoding='utf-8') as out:
     out.write(pytesseract.image_to_string(blur, lang=args.lang))
-
