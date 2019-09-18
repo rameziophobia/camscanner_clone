@@ -17,25 +17,13 @@ parser.add_argument("--lang", required=True,
 
 args = parser.parse_args()
 
-# load the image and compute the ratio of the old height
-# to the new height, clone it, and resize it
 img = cv2.imread(args.image)
-# ratio = img.shape[0] / 500.0
-# orig = img.copy()
-# img = imutils.resize(img, height=500)
 
 # convert the image to grayscale, blur it, and find edges
 # in the image
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 gray = cv2.GaussianBlur(gray, (5, 5), 0)
 edged = cv2.Canny(gray, 75, 200)
-
-# show the original image and the edge detected image
-print("STEP 1: Edge Detection")
-cv2.imshow("Image", img)
-cv2.imshow("Edged", edged)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
 
 # find the contours in the edged image, keeping only the
 # largest ones, and initialize the screen contour
@@ -80,20 +68,10 @@ if screenCnt is None:
     angle = rect[-1]
     box = cv2.boxPoints(rect)
     box = np.int0(box)
-
-    # todo debug here
-    # cv2.drawContours(img, [box], 0, (0, 0, 255), 2)
-    # cv2.imshow("Outline - edged", img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-# else
 else:
     # show the contour (outline) of the piece of paper
-    print("STEP 2: Find contours of paper")
-    # cv2.drawContours(img, [screenCnt], -1, (0, 255, 0), 2)
     angle = cv2.minAreaRect(screenCnt)[-1]
 
-    cv2.imshow("Outline", img)
 
     rottt = imutils.rotate_bound(img, angle=-angle)
 
@@ -104,17 +82,9 @@ else:
     contours, _ = cv2.findContours(thresh, 1, 2)
     cnt = sorted(contours, key=cv2.contourArea, reverse=True)[:1][0]
 
-    print(type(cnt))
     x, y, w, h = cv2.boundingRect(cnt)
-    # cv2.rectangle(rottt, (x, y), (x + w, y + h), (0, 255, 0), 2)
     crop_img = rottt[y:y + h, x:x + w]
-    cv2.imshow("Outline - edged", edged)
-    cv2.imshow("Outline - rot", rottt)
-    cv2.imshow("Outline - rot - crop", crop_img)
     final_img = crop_img
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
 
 # the `cv2.minAreaRect` function returns values in the
 # range [-90, 0); as the rectangle rotates clockwise the
@@ -136,7 +106,6 @@ M = cv2.getRotationMatrix2D(center, angle, 1.0)
 rotated = cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
 
 # show the output image
-print("[INFO] angle: {:.3f}".format(angle))
 cv2.imshow("Input", img)
 if final_img is None:
     final_img = rotated
@@ -148,7 +117,7 @@ while key != ord(" "):
         final_img = cv2.rotate(final_img, cv2.ROTATE_90_CLOCKWISE)
     elif key == ord("a"):
         final_img = cv2.rotate(final_img, cv2.ROTATE_90_COUNTERCLOCKWISE)
-    print(key)
+    # print(key)
     cv2.imshow('rotate', final_img)
     key = cv2.waitKey(0)
 
@@ -159,8 +128,6 @@ blur = cv2.medianBlur(thresh, 1)
 with open("output.txt", "w", encoding='utf-8') as out:
     out.write(pytesseract.image_to_string(gray, lang=args.lang))
 
-cv2.imshow('ImageWindow1', gray)
-cv2.imshow('ImageWindow2', thresh)
-cv2.imshow('ImageWindow3', blur)
+with open("noisyImages_output.txt", "w", encoding='utf-8') as out:
+    out.write(pytesseract.image_to_string(blur, lang=args.lang))
 
-cv2.waitKey(0)
