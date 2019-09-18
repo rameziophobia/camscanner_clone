@@ -11,6 +11,6 @@ HOW TO USE:
     4. upon running the input image and the final img will be shown if
        the orientation is not correct press 'a' or 'd' to rotate 90 degrees
     5. press "space" to continue
-    6. two text files will be created output.txt and noisyImages_output.txt
+    6. two text files will be created output.log and noisyImages_output.log
        they will include the text in the image with each doing its own filters
        use the file with the best results for each image
